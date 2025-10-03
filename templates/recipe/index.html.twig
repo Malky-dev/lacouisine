@@ -1,0 +1,39 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Toutes les recettes{% endblock %}
+
+{% block body %}
+
+<div class="d-grid gap-2 col-4 mx-auto mb-5">
+    <a class="btn btn-primary text-center" href="{{ url('recipe.create') }}">Ajouter une recette</a>
+</div>
+
+<div class="container">
+    <div class="row">
+        <div class="col-8">
+            Liste des recettes
+        </div>
+        <div class="col-4">
+            Actions
+        </div>
+    </div>
+    {%  for recipe in recipes %}
+        <div class="row mt-1">
+            <div class="col-8">
+                <a href="{{ url('recipe.show' , {id: recipe.id, slug: recipe.slug}) }}"> {{ recipe.title }} </a>
+            </div>
+            <div class="col-2">
+                <a class="btn btn-info btn-sm" href="{{ url('recipe.edit' , {id: recipe.id, slug: recipe.slug}) }}"> Modifier </a>
+            </div>
+            <div class="col-2">
+                <form action="{{ path('recipe.edit', {id: recipe.id}) }}" method="post">
+                    <input type="hidden" name="_method" value="DELETE">
+                    <button type="submit" class="btn btn-danger btn-sm"> Supprimer </a>
+                </form>
+            </div>
+        </div>
+    {% endfor %}
+</div>
+
+
+{% endblock %}
