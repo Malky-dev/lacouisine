@@ -1,32 +1,32 @@
-{% extends 'base.html.twig' %}
+{% extends 'admin/admin.html.twig' %}
 
-{% block title %}Toutes les recettes{% endblock %}
+{% block title %}Toutes les catégories{% endblock %}
 
 {% block body %}
 
 <div class="d-grid gap-2 col-4 mx-auto mb-5">
-    <a class="btn btn-primary text-center" href="{{ url('recipe.create') }}">Ajouter une recette</a>
+    <a class="btn btn-primary text-center" href="{{ url('admin.category.create') }}">Ajouter une catégorie</a>
 </div>
 
 <div class="container">
     <div class="row">
         <div class="col-8">
-            Liste des recettes
+            Liste des Catégories
         </div>
         <div class="col-4">
             Actions
         </div>
     </div>
-    {%  for recipe in recipes %}
+    {%  for category in categories %}
         <div class="row mt-1">
             <div class="col-8">
-                <a href="{{ url('recipe.show' , {id: recipe.id, slug: recipe.slug}) }}"> {{ recipe.title }} </a>
+                <a href="{{ url('admin.category.edit' , {id: category.id}) }}"> {{ category.name }} </a>
             </div>
             <div class="col-2">
-                <a class="btn btn-info btn-sm" href="{{ url('recipe.edit' , {id: recipe.id, slug: recipe.slug}) }}"> Modifier </a>
+                <a class="btn btn-info btn-sm" href="{{ url('admin.category.edit' , {id: category.id}) }}"> Modifier </a>
             </div>
             <div class="col-2">
-                <form action="{{ path('recipe.edit', {id: recipe.id}) }}" method="post">
+                <form action="{{ path('admin.category.delete', {id: category.id}) }}" method="post">
                     <input type="hidden" name="_method" value="DELETE">
                     <button type="submit" class="btn btn-danger btn-sm"> Supprimer </a>
                 </form>
