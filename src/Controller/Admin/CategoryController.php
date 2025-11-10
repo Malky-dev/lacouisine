@@ -21,11 +21,14 @@ class CategoryController extends AbstractController {
 
     
     #[Route(name: 'index')]
-    public function index(CategoryRepository $category)
+    public function index(CategoryRepository $repository, Request $request)
     {
+
+        $page = $request->query->getInt('page', '1');
+        $category = $repository->paginateCategory($page);
         
         return $this->render('admin/Category/index.html.twig', [
-            'categories' => $category->findAll()
+            'categories' => $category
         ]);
 
     }

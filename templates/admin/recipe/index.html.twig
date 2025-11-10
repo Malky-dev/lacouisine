@@ -9,37 +9,41 @@
 </div>
 
 <div class="container">
-    <div class="row">
-        <div class="col-6">
-            <strong>Liste des recettes</strong>
-        </div>
-        <div class="col-2">
-            <strong>Catégories</strong>
-        </div>
-        <div class="col-4">
-            <strong>Actions</strong>
-        </div>
-    </div>
-    {%  for recipe in recipes %}
-        <div class="row mt-1">
-            <div class="col-6">
-                <a href="{{ url('admin.recipe.edit' , {id: recipe.id}) }}"> {{ recipe.title }} </a>
-            </div>
-            <div class="col-2">
-                <p>{{ recipe.category.name | default('') }}</p>
-            </div>
-            <div class="col-2">
-                <a class="btn btn-info btn-sm" href="{{ url('admin.recipe.edit' , {id: recipe.id}) }}"> Modifier </a>
-            </div>
-            <div class="col-2">
-                <form action="{{ path('admin.recipe.delete', {id: recipe.id}) }}" method="post">
-                    <input type="hidden" name="_method" value="DELETE">
-                    <button type="submit" class="btn btn-danger btn-sm"> Supprimer </a>
-                </form>
-            </div>
-        </div>
-    {% endfor %}
-</div>
+    <table class="table">
+        <thead>
+            <tr>
+                <th class="w-50"> {{knp_pagination_sortable(recipes, 'Nom de la recette', 'r.title')}} </th>
+                <th class="w-25"> {{knp_pagination_sortable(recipes, 'Catégorie', 'r.category_id')}} </th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {%  for recipe in recipes %}
+                <tr>
+                    <td>
+                        <a href="{{ url('admin.recipe.edit' , {id: recipe.id}) }}"> {{ recipe.title }} </a>
+                    </td>
+                    <td>
+                        <p>{{ recipe.category.name | default('') }}</p>
+                    </td>
+                    <td>
+                        <div class="d-flex gap-1">
+                            <a class="btn btn-info btn-sm" href="{{ url('admin.recipe.edit' , {id: recipe.id}) }}"> Modifier </a>
+                            <form action="{{ path('admin.recipe.delete', {id: recipe.id}) }}" method="post">
+                                <input type="hidden" name="_method" value="DELETE">
+                                <button type="submit" class="btn btn-danger btn-sm"> Supprimer </a>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
 
+    <div class="d-flex justify-content-center mt-5">
+        {{ knp_pagination_render(recipes)}}
+    </div>
+
+</div>
 
 {% endblock %}
