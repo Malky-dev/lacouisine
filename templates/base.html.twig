@@ -23,9 +23,27 @@
                         <li class="nav-item">
                             <a class="nav-link {{ app.current_route == 'home' ? 'active' : '' }}" href="{{ path('home') }}">Accueil</a>
                         </li>
-                        <li class="nav-item">
-                            {# <a class="nav-link {{ app.current_route == 'admin.recipe.index' ? 'active' : '' }}" href="{{ path('admin.recipe.index') }}">Recettes</a> #}
-                        </li>
+
+                        {% if is_granted('IS_AUTHENTICATED') %}
+
+                            <li class="nav-item">
+                                <a class="nav-link {{ app.current_route starts with 'admin.recipe.' ? 'active' : '' }}" href="{{ path('admin.recipe.index') }}">Recettes</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link {{ app.current_route starts with 'admin.category.' ? 'active' : '' }}" href="{{ path('admin.category.index') }}">Catégories</a>
+                            </li>
+                            
+                        {% else %}
+
+                            <li class="nav-item">
+                                <a class="nav-link {{ app.current_route == 'app_login' ? 'active' : '' }}" href="{{ path('app_login') }}">Se connecter</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link {{ app.current_route == 'app_register' ? 'active' : '' }}" href="{{ path('app_register') }}">S'inscrire</a>
+                            </li>
+
+                        {% endif %}
+
                         <li class="nav-item">
                             <a class="nav-link {{ app.current_route == 'contact' ? 'active' : '' }}" href="{{ path('contact') }}">Contact</a>
                         </li>
