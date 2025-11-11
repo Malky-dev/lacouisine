@@ -18,38 +18,34 @@ class RecipeRepository extends ServiceEntityRepository
         parent::__construct($registry, Recipe::class);
     }
 
+    public function paginateRecipes(int $page): PaginationInterface
+    {
+
+        return $this->paginator->paginate(
+            $this->createQueryBuilder('r')->leftJoin('r.category', 'c')->select('r', 'c'),
+            $page,
+            10
+        );
+
+    }
+
     /**
      * Get the Recipes where the duration is lower than an amount of minutes
      * @param int $duration
      * @return Recipe[]
      */
-    public function findWithDurationLowerThan(int $duration): array
-    {
+    // public function findWithDurationLowerThan(int $duration): array
+    // {
 
-        return $this->createQueryBuilder('r')
-            ->where('r.duration <= :duration')
-            ->orderBy('r.duration', 'ASC')
-            ->setMaxResults(10)
-            ->setParameter('duration', $duration)
-            ->getQuery()
-            ->getResult();
+    //     return $this->createQueryBuilder('r')
+    //         ->where('r.duration <= :duration')
+    //         ->orderBy('r.duration', 'ASC')
+    //         ->setMaxResults(10)
+    //         ->setParameter('duration', $duration)
+    //         ->getQuery()
+    //         ->getResult();
 
-    }
-
-    public function paginateRecipes(int $page): PaginationInterface
-    {
-
-        return $this->paginator->paginate(
-            $this->createQueryBuilder('r'),
-            $page,
-            10,
-            [
-                'distinct' => true,
-                'sortFieldAllowList' => ['r.title', 'r.category_id']
-            ]
-        );
-
-    }
+    // }
 
     //    /**
     //     * @return Recipe[] Returns an array of Recipe objects
