@@ -16,7 +16,7 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 #[Route('/admin/recettes/', name: 'admin.recipe.')]
 #[IsGranted('ROLE_USER')]
-final class RecipeController extends AbstractController
+class RecipeController extends AbstractController
 {
     #[Route(name: 'index')]
     public function index(RecipeRepository $repository, Request $request): Response

@@ -34,6 +34,8 @@ class ContactController extends AbstractController
 
         if ($form->isSubmitted() && $form->isValid()) {
 
+            $serviceEmailAdrress = 'support@lacouisine.fr';
+
             switch ($data->service) {
                 case 'support':
                     $serviceEmailAdrress = 'support@lacouisine.fr';
@@ -48,6 +50,7 @@ class ContactController extends AbstractController
                     break;
                 
                 default:
+                    $serviceEmailAdrress = 'support@lacouisine.fr';
                     break;
             }
 

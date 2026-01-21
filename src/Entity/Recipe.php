@@ -25,14 +25,26 @@ class Recipe
     #[ORM\Column(length: 255)]
     #[Assert\Length(min: 5)]
     #[BanWord()]
+<<<<<<< Updated upstream
+=======
+    #[Groups(['recipes.index', 'recipes.create'])]
+>>>>>>> Stashed changes
     private string $title = '';
 
-    #[ORM\Column(length: 255)]
+    #[ORM\Column(length: 255, nullable: true)]
     #[Assert\Length(min: 5)]
     #[Assert\Regex('/^[a-z0-9]+(?:-[a-z0-9]+)*$/', message: 'Ce slug n\'est pas valide')]
+<<<<<<< Updated upstream
     private string $slug = '';
 
     #[ORM\Column(type: Types::TEXT)]
+=======
+    #[Groups(['recipes.index', 'recipes.create'])]
+    private ?string $slug = null;
+
+    #[ORM\Column(type: Types::TEXT)]
+    #[Groups(['recipes.show', 'recipes.create'])]
+>>>>>>> Stashed changes
     private string $content = '';
 
     #[ORM\Column]
@@ -44,6 +56,10 @@ class Recipe
     #[ORM\Column(nullable: true)]
     #[Assert\Positive()]
     #[Assert\LessThan(1440)]
+<<<<<<< Updated upstream
+=======
+    #[Groups(['recipes.index', 'recipes.create'])]
+>>>>>>> Stashed changes
     private ?int $duration = null;
 
     #[ORM\ManyToOne(inversedBy: 'recipes', cascade: ['persist'])]
@@ -73,12 +89,12 @@ class Recipe
         return $this;
     }
 
-    public function getSlug(): string
+    public function getSlug(): ?string
     {
         return $this->slug;
     }
 
-    public function setSlug(string $slug): static
+    public function setSlug(?string $slug): static
     {
         $this->slug = $slug;
 
