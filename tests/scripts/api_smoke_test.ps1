@@ -179,10 +179,33 @@ $recipesResponse = Invoke-ApiRequest `
     -Method "GET" `
     -Path "/api/v1/recipes"
 
-Assert-StatusCode `
+$recipesAvailable = Assert-StatusCode `
     -Response $recipesResponse `
     -ExpectedStatus 200 `
-    -TestName "Public recipes endpoint is accessible" | Out-Null
+    -TestName "Public recipes endpoint is accessible"
+
+if ($recipesAvailable) {
+    $recipesData = Convert-JsonResponse `
+        -Response $recipesResponse `
+        -TestName "Recipes response contains valid JSON"
+
+    if (
+        $null -ne $recipesData `
+        -and $null -ne $recipesData.data `
+        -and $null -ne $recipesData.meta `
+        -and $null -ne $recipesData.meta.page `
+        -and $null -ne $recipesData.meta.perPage `
+        -and $null -ne $recipesData.meta.total `
+        -and $null -ne $recipesData.meta.lastPage
+    ) {
+        Write-TestSuccess "Recipes response follows the V1 contract"
+    }
+    else {
+        Write-TestFailure `
+            -Message "Recipes response follows the V1 contract" `
+            -Details "Expected data and pagination metadata are missing."
+    }
+}
 
 # 2. Invalid login
 
