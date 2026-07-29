@@ -207,6 +207,43 @@ if ($recipesAvailable) {
     }
 }
 
+function Assert-ApiError {
+    param(
+        [Parameter(Mandatory = $true)]
+        [object]$Response,
+
+        [Parameter(Mandatory = $true)]
+        [string]$ExpectedCode,
+
+        [Parameter(Mandatory = $true)]
+        [string]$TestName
+    )
+
+    try {
+        $errorData = $Response.Content | ConvertFrom-Json
+    }
+    catch {
+        Write-TestFailure `
+            -Message $TestName `
+            -Details "The error response does not contain valid JSON."
+
+        return
+    }
+
+    if (
+        $null -ne $errorData.error `
+        -and $errorData.error.code -eq $ExpectedCode `
+        -and -not [string]::IsNullOrWhiteSpace($errorData.error.message)
+    ) {
+        Write-TestSuccess $TestName
+        return
+    }
+
+    Write-TestFailure `
+        -Message $TestName `
+        -Details ("Expected error.code to equal {0}." -f $ExpectedCode)
+}
+
 # 2. Invalid login
 
 $invalidLoginResponse = Invoke-ApiRequest `
@@ -217,10 +254,17 @@ $invalidLoginResponse = Invoke-ApiRequest `
         password = "__invalid_smoke_test_password__"
     }
 
-Assert-StatusCode `
+$invalidLoginRejected = Assert-StatusCode `
     -Response $invalidLoginResponse `
     -ExpectedStatus 401 `
-    -TestName "Invalid credentials are rejected" | Out-Null
+    -TestName "Invalid credentials are rejected"
+
+if ($invalidLoginRejected) {
+    Assert-ApiError `
+        -Response $invalidLoginResponse `
+        -ExpectedCode "INVALID_CREDENTIALS" `
+        -TestName "Invalid login follows the error contract"
+}
 
 # 3. Anonymous access to /me
 
@@ -228,12 +272,53 @@ $anonymousMeResponse = Invoke-ApiRequest `
     -Method "GET" `
     -Path "/api/v1/me"
 
-Assert-StatusCode `
+$anonymousMeRejected = Assert-StatusCode `
     -Response $anonymousMeResponse `
     -ExpectedStatus 401 `
-    -TestName "Anonymous access to /me is rejected" | Out-Null
+    -TestName "Anonymous access to /me is rejected"
 
-# 4. Check optional credentials
+if ($anonymousMeRejected) {
+    Assert-ApiError `
+        -Response $anonymousMeResponse `
+        -ExpectedCode "UNAUTHORIZED" `
+        -TestName "Anonymous access follows the error contract"
+}
+
+# 4. API exception contract
+
+$missingRecipeResponse = Invoke-ApiRequest `
+    -Method "GET" `
+    -Path "/api/v1/recipes/2147483647"
+
+$missingRecipeRejected = Assert-StatusCode `
+    -Response $missingRecipeResponse `
+    -ExpectedStatus 404 `
+    -TestName "Missing recipe returns HTTP 404"
+
+if ($missingRecipeRejected) {
+    Assert-ApiError `
+        -Response $missingRecipeResponse `
+        -ExpectedCode "RESOURCE_NOT_FOUND" `
+        -TestName "Missing recipe follows the error contract"
+}
+
+$unknownRouteResponse = Invoke-ApiRequest `
+    -Method "GET" `
+    -Path "/api/v1/__unknown_smoke_test_route__"
+
+$unknownRouteRejected = Assert-StatusCode `
+    -Response $unknownRouteResponse `
+    -ExpectedStatus 404 `
+    -TestName "Unknown API route returns HTTP 404"
+
+if ($unknownRouteRejected) {
+    Assert-ApiError `
+        -Response $unknownRouteResponse `
+        -ExpectedCode "RESOURCE_NOT_FOUND" `
+        -TestName "Unknown API route follows the error contract"
+}
+
+# 5. Check optional credentials
 
 $hasUsername = -not [string]::IsNullOrWhiteSpace($Username)
 $hasPassword = -not [string]::IsNullOrWhiteSpace($Password)
@@ -249,7 +334,7 @@ elseif (-not $hasUsername -and -not $hasPassword) {
     Write-TestSkipped "Altered token test"
 }
 else {
-    # 5. Valid login
+    # 6. Valid login
 
     $loginResponse = Invoke-ApiRequest `
         -Method "POST" `
@@ -283,7 +368,7 @@ else {
         else {
             Write-TestSuccess "Login response contains a JWT"
 
-            # 6. Authenticated access to /me
+            # 7. Authenticated access to /me
 
             $authenticatedHeaders = @{
                 Authorization = "Bearer $token"
@@ -318,7 +403,7 @@ else {
                 }
             }
 
-            # 7. Altered token
+            # 8. Altered token
 
             $lastCharacter = $token.Substring($token.Length - 1)
             $replacementCharacter = if ($lastCharacter -eq "A") { "B" } else { "A" }
@@ -333,10 +418,17 @@ else {
                     Authorization = "Bearer $alteredToken"
                 }
 
-            Assert-StatusCode `
+            $alteredTokenRejected = Assert-StatusCode `
                 -Response $alteredTokenResponse `
                 -ExpectedStatus 401 `
-                -TestName "Altered JWT is rejected" | Out-Null
+                -TestName "Altered JWT is rejected"
+
+            if ($alteredTokenRejected) {
+                Assert-ApiError `
+                    -Response $alteredTokenResponse `
+                    -ExpectedCode "INVALID_TOKEN" `
+                    -TestName "Altered JWT follows the error contract"
+            }
         }
     }
     else {
