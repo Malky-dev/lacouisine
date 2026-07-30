@@ -3,6 +3,7 @@
 namespace App\Controller\Admin;
 
 use App\Entity\Recipe;
+use App\Entity\User;
 use App\Form\RecipeType;
 use App\Repository\RecipeRepository;
 use Doctrine\ORM\EntityManagerInterface;
@@ -15,7 +16,7 @@ use Symfony\Component\Routing\Requirement\Requirement;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 #[Route('/admin/recettes/', name: 'admin.recipe.')]
-#[IsGranted('ROLE_USER')]
+#[IsGranted('ROLE_ADMIN')]
 final class RecipeController extends AbstractController
 {
     #[Route(name: 'index')]
@@ -36,6 +37,13 @@ final class RecipeController extends AbstractController
     {
 
         $recipe = new Recipe();
+        $user = $this->getUser();
+
+        if (!$user instanceof User) {
+            throw $this->createAccessDeniedException();
+        }
+
+        $recipe->setCreatedBy($user);
 
         $form = $this->createForm(RecipeType::class, $recipe);
         $form->handleRequest($request);
