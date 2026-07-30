@@ -4,11 +4,10 @@ declare(strict_types=1);
 
 namespace App\Controller\API;
 
-use App\DTO\API\V1\PaginationMeta;
 use App\Entity\Recipe;
+use App\Mapper\API\V1\PaginationMapper;
 use App\Mapper\API\V1\RecipeMapper;
 use App\Repository\RecipeRepository;
-use Knp\Component\Pager\Pagination\PaginationInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -29,6 +28,7 @@ final class RecipesController extends AbstractController
         RecipeRepository $repository,
         Request $request,
         RecipeMapper $mapper,
+        PaginationMapper $paginationMapper,
     ): JsonResponse {
         $recipes = $repository->paginateRecipes(
             $request->query->getInt('page', 1),
@@ -39,7 +39,7 @@ final class RecipesController extends AbstractController
                 static fn (Recipe $recipe) => $mapper->toListItem($recipe),
                 $recipes->getItems(),
             ),
-            'meta' => $this->createPaginationMeta($recipes),
+            'meta' => $paginationMapper->toMeta($recipes),
         ]);
     }
 
@@ -125,18 +125,6 @@ final class RecipesController extends AbstractController
             $content,
             Response::HTTP_OK,
             ['Content-Type' => $this->getContentType($format)],
-        );
-    }
-
-    private function createPaginationMeta(PaginationInterface $pagination): PaginationMeta
-    {
-        $perPage = $pagination->getItemNumberPerPage();
-
-        return new PaginationMeta(
-            page: $pagination->getCurrentPageNumber(),
-            perPage: $perPage,
-            total: $pagination->getTotalItemCount(),
-            lastPage: (int) ceil($pagination->getTotalItemCount() / $perPage),
         );
     }
 

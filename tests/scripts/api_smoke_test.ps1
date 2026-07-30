@@ -207,6 +207,74 @@ if ($recipesAvailable) {
     }
 }
 
+# 2. Public categories endpoints
+
+$categoriesResponse = Invoke-ApiRequest `
+    -Method "GET" `
+    -Path "/api/v1/categories"
+
+$categoriesAvailable = Assert-StatusCode `
+    -Response $categoriesResponse `
+    -ExpectedStatus 200 `
+    -TestName "Public categories endpoint is accessible"
+
+if ($categoriesAvailable) {
+    $categoriesData = Convert-JsonResponse `
+        -Response $categoriesResponse `
+        -TestName "Categories response contains valid JSON"
+
+    if (
+        $null -ne $categoriesData `
+        -and $null -ne $categoriesData.data `
+        -and $null -ne $categoriesData.meta `
+        -and $null -ne $categoriesData.meta.page `
+        -and $null -ne $categoriesData.meta.perPage `
+        -and $null -ne $categoriesData.meta.total `
+        -and $null -ne $categoriesData.meta.lastPage
+    ) {
+        Write-TestSuccess "Categories response follows the V1 contract"
+    }
+    else {
+        Write-TestFailure `
+            -Message "Categories response follows the V1 contract" `
+            -Details "Expected data and pagination metadata are missing."
+    }
+
+    if ($null -ne $categoriesData -and $categoriesData.data.Count -gt 0) {
+        $categorySlug = $categoriesData.data[0].slug
+        $categoryResponse = Invoke-ApiRequest `
+            -Method "GET" `
+            -Path "/api/v1/categories/$categorySlug"
+
+        $categoryAvailable = Assert-StatusCode `
+            -Response $categoryResponse `
+            -ExpectedStatus 200 `
+            -TestName "Public category detail is accessible"
+
+        if ($categoryAvailable) {
+            $categoryData = Convert-JsonResponse `
+                -Response $categoryResponse `
+                -TestName "Category detail contains valid JSON"
+
+            if (
+                $null -ne $categoryData.data `
+                -and $categoryData.data.slug -eq $categorySlug `
+                -and $null -ne $categoryData.data.recipeCount
+            ) {
+                Write-TestSuccess "Category detail follows the V1 contract"
+            }
+            else {
+                Write-TestFailure `
+                    -Message "Category detail follows the V1 contract" `
+                    -Details "Expected category data is missing."
+            }
+        }
+    }
+    else {
+        Write-TestSkipped "Public category detail test"
+    }
+}
+
 function Assert-ApiError {
     param(
         [Parameter(Mandatory = $true)]
@@ -244,7 +312,7 @@ function Assert-ApiError {
         -Details ("Expected error.code to equal {0}." -f $ExpectedCode)
 }
 
-# 2. Invalid login
+# 3. Invalid login
 
 $invalidLoginResponse = Invoke-ApiRequest `
     -Method "POST" `
@@ -266,7 +334,7 @@ if ($invalidLoginRejected) {
         -TestName "Invalid login follows the error contract"
 }
 
-# 3. Anonymous access to /me
+# 4. Anonymous access to /me
 
 $anonymousMeResponse = Invoke-ApiRequest `
     -Method "GET" `
@@ -284,7 +352,7 @@ if ($anonymousMeRejected) {
         -TestName "Anonymous access follows the error contract"
 }
 
-# 4. API exception contract
+# 5. API exception contract
 
 $missingRecipeResponse = Invoke-ApiRequest `
     -Method "GET" `
@@ -318,7 +386,23 @@ if ($unknownRouteRejected) {
         -TestName "Unknown API route follows the error contract"
 }
 
-# 5. Check optional credentials
+$missingCategoryResponse = Invoke-ApiRequest `
+    -Method "GET" `
+    -Path "/api/v1/categories/missing-smoke-test-category"
+
+$missingCategoryRejected = Assert-StatusCode `
+    -Response $missingCategoryResponse `
+    -ExpectedStatus 404 `
+    -TestName "Missing category returns HTTP 404"
+
+if ($missingCategoryRejected) {
+    Assert-ApiError `
+        -Response $missingCategoryResponse `
+        -ExpectedCode "RESOURCE_NOT_FOUND" `
+        -TestName "Missing category follows the error contract"
+}
+
+# 6. Check optional credentials
 
 $hasUsername = -not [string]::IsNullOrWhiteSpace($Username)
 $hasPassword = -not [string]::IsNullOrWhiteSpace($Password)
@@ -334,7 +418,7 @@ elseif (-not $hasUsername -and -not $hasPassword) {
     Write-TestSkipped "Altered token test"
 }
 else {
-    # 6. Valid login
+    # 7. Valid login
 
     $loginResponse = Invoke-ApiRequest `
         -Method "POST" `
@@ -368,7 +452,7 @@ else {
         else {
             Write-TestSuccess "Login response contains a JWT"
 
-            # 7. Authenticated access to /me
+            # 8. Authenticated access to /me
 
             $authenticatedHeaders = @{
                 Authorization = "Bearer $token"
@@ -403,7 +487,7 @@ else {
                 }
             }
 
-            # 8. Altered token
+            # 9. Altered token
 
             $lastCharacter = $token.Substring($token.Length - 1)
             $replacementCharacter = if ($lastCharacter -eq "A") { "B" } else { "A" }
