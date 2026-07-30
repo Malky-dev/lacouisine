@@ -19,6 +19,7 @@ final class RecipeMapper
             title: $recipe->getTitle(),
             slug: $recipe->getSlug(),
             duration: $recipe->getDuration(),
+            visibility: $recipe->getVisibility()->value,
         );
     }
 
@@ -30,6 +31,7 @@ final class RecipeMapper
             slug: $recipe->getSlug(),
             content: $recipe->getContent(),
             duration: $recipe->getDuration(),
+            visibility: $recipe->getVisibility()->value,
             thumbnail: $recipe->getThumbnail(),
             category: $this->toCategorySummary($recipe->getCategory()),
             createdAt: $recipe->getCreatedAt()?->format(DATE_ATOM),

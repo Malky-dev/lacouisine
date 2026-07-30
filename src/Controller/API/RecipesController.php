@@ -8,12 +8,14 @@ use App\Entity\Recipe;
 use App\Mapper\API\V1\PaginationMapper;
 use App\Mapper\API\V1\RecipeMapper;
 use App\Repository\RecipeRepository;
+use App\Security\Voter\RecipeVoter;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Routing\Requirement\Requirement;
+use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Component\Serializer\SerializerInterface;
 
 final class RecipesController extends AbstractController
@@ -30,7 +32,7 @@ final class RecipesController extends AbstractController
         RecipeMapper $mapper,
         PaginationMapper $paginationMapper,
     ): JsonResponse {
-        $recipes = $repository->paginateRecipes(
+        $recipes = $repository->paginatePublicRecipes(
             $request->query->getInt('page', 1),
         );
 
@@ -55,7 +57,7 @@ final class RecipesController extends AbstractController
         Request $request,
         SerializerInterface $serializer,
     ): Response {
-        $recipes = $repository->paginateRecipes(
+        $recipes = $repository->paginatePublicRecipes(
             $request->query->getInt('page', 1),
         );
 
@@ -74,6 +76,7 @@ final class RecipesController extends AbstractController
         requirements: ['id' => Requirement::DIGITS],
         defaults: ['_format' => 'json'],
     )]
+    #[IsGranted(RecipeVoter::VIEW, subject: 'recipe')]
     public function show(
         Recipe $recipe,
         RecipeMapper $mapper,
@@ -93,6 +96,7 @@ final class RecipesController extends AbstractController
         ],
         defaults: ['_format' => 'json'],
     )]
+    #[IsGranted(RecipeVoter::VIEW, subject: 'recipe')]
     public function legacyShow(
         Recipe $recipe,
         Request $request,

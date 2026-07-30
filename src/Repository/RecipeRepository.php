@@ -3,6 +3,8 @@
 namespace App\Repository;
 
 use App\Entity\Recipe;
+use App\Entity\User;
+use App\Enum\RecipeVisibility;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 use Knp\Component\Pager\Pagination\PaginationInterface;
@@ -27,6 +29,30 @@ class RecipeRepository extends ServiceEntityRepository
             10
         );
 
+    }
+
+    public function paginatePublicRecipes(int $page): PaginationInterface
+    {
+        $query = $this->createQueryBuilder('recipe')
+            ->leftJoin('recipe.category', 'category')
+            ->addSelect('category')
+            ->andWhere('recipe.visibility = :visibility')
+            ->setParameter('visibility', RecipeVisibility::PUBLIC->value);
+
+        return $this->paginator->paginate($query, max(1, $page), 10);
+    }
+
+    public function privatizeAndDetachByCreator(User $user): int
+    {
+        return $this->createQueryBuilder('recipe')
+            ->update()
+            ->set('recipe.visibility', ':visibility')
+            ->set('recipe.createdBy', 'NULL')
+            ->andWhere('recipe.createdBy = :creator')
+            ->setParameter('visibility', RecipeVisibility::PRIVATE->value)
+            ->setParameter('creator', $user)
+            ->getQuery()
+            ->execute();
     }
 
     /**

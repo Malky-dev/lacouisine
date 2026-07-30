@@ -11,6 +11,7 @@ final readonly class RecipeListItem
         public string $title,
         public string $slug,
         public ?int $duration,
+        public string $visibility,
     ) {
     }
 }

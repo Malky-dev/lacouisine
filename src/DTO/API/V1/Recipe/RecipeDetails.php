@@ -12,6 +12,7 @@ final readonly class RecipeDetails
         public string $slug,
         public string $content,
         public ?int $duration,
+        public string $visibility,
         public ?string $thumbnail,
         public ?CategorySummary $category,
         public ?string $createdAt,

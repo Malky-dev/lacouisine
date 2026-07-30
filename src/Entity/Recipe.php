@@ -2,6 +2,7 @@
 
 namespace App\Entity;
 
+use App\Enum\RecipeVisibility;
 use App\Repository\RecipeRepository;
 use App\Validator\BanWord;
 use Doctrine\DBAL\Types\Types;
@@ -58,6 +59,13 @@ class Recipe
 
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $thumbnail = null;
+
+    #[ORM\Column(enumType: RecipeVisibility::class, options: ['default' => 'public'])]
+    private RecipeVisibility $visibility = RecipeVisibility::PUBLIC;
+
+    #[ORM\ManyToOne(inversedBy: 'recipes')]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'RESTRICT')]
+    private ?User $createdBy = null;
 
     #[Vich\UploadableField(mapping: "recipes", fileNameProperty: "thumbnail")]
     #[Assert\Image()]
@@ -172,6 +180,30 @@ class Recipe
     public function setThumbnailFile(?File $thumbnailFile): static
     {
         $this->thumbnailFile = $thumbnailFile;
+
+        return $this;
+    }
+
+    public function getVisibility(): RecipeVisibility
+    {
+        return $this->visibility;
+    }
+
+    public function setVisibility(RecipeVisibility $visibility): static
+    {
+        $this->visibility = $visibility;
+
+        return $this;
+    }
+
+    public function getCreatedBy(): ?User
+    {
+        return $this->createdBy;
+    }
+
+    public function setCreatedBy(?User $createdBy): static
+    {
+        $this->createdBy = $createdBy;
 
         return $this;
     }

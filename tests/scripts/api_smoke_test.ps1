@@ -205,6 +205,19 @@ if ($recipesAvailable) {
             -Message "Recipes response follows the V1 contract" `
             -Details "Expected data and pagination metadata are missing."
     }
+
+    $nonPublicRecipes = @(
+        $recipesData.data | Where-Object { $_.visibility -ne "public" }
+    )
+
+    if ($nonPublicRecipes.Count -eq 0) {
+        Write-TestSuccess "Public recipes endpoint only exposes public recipes"
+    }
+    else {
+        Write-TestFailure `
+            -Message "Public recipes endpoint only exposes public recipes" `
+            -Details "At least one non-public recipe was returned."
+    }
 }
 
 # 2. Public categories endpoints
