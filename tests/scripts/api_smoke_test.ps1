@@ -4,6 +4,23 @@ param(
     [string]$Password = ""
 )
 
+$smokePath = Join-Path $PSScriptRoot "smoke"
+. (Join-Path $smokePath "common.ps1")
+. (Join-Path $smokePath "public_api.ps1")
+. (Join-Path $smokePath "authentication.ps1")
+. (Join-Path $smokePath "category_management.ps1")
+
+Initialize-SmokeTests $BaseUrl
+Write-Host "`nLa Couisine API smoke tests" -ForegroundColor Cyan
+Write-Host "Target: $script:BaseUrl`n" -ForegroundColor DarkGray
+Invoke-PublicApiSmokeTests
+Invoke-AuthenticationSmokeTests $Username $Password
+Invoke-CategoryManagementSmokeTests $Username $Password
+Complete-SmokeTests
+exit 0
+
+<# Legacy monolithic implementation retained temporarily for comparison.
+
 $ErrorActionPreference = "Stop"
 
 $script:PassedTests = 0
@@ -547,3 +564,4 @@ if ($script:FailedTests -gt 0) {
 }
 
 exit 0
+#>
