@@ -17,6 +17,7 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Event\ExceptionEvent;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 use Symfony\Component\HttpKernel\KernelEvents;
+use Symfony\Component\Validator\Exception\ValidationFailedException;
 
 final readonly class ApiExceptionSubscriber implements EventSubscriberInterface
 {
@@ -55,6 +56,27 @@ final readonly class ApiExceptionSubscriber implements EventSubscriberInterface
             $this->logger->error('Unhandled API exception.', [
                 'exception' => $exception,
             ]);
+        }
+
+        $validationException = $this->findValidationException($exception);
+
+        if ($validationException !== null) {
+            $violations = [];
+
+            foreach ($validationException->getViolations() as $violation) {
+                $property = $violation->getPropertyPath() ?: '_global';
+                $violations[$property][] = $violation->getMessage();
+            }
+
+            $event->setResponse($this->responseFactory->create(
+                statusCode: Response::HTTP_UNPROCESSABLE_ENTITY,
+                code: 'VALIDATION_ERROR',
+                message: 'The submitted data is invalid.',
+                headers: $headers,
+                details: ['violations' => $violations],
+            ));
+
+            return;
         }
 
         $event->setResponse(
@@ -121,5 +143,18 @@ final readonly class ApiExceptionSubscriber implements EventSubscriberInterface
         $path = $request->getPathInfo();
 
         return $path === '/api/v1' || str_starts_with($path, '/api/v1/');
+    }
+
+    private function findValidationException(\Throwable $exception): ?ValidationFailedException
+    {
+        do {
+            if ($exception instanceof ValidationFailedException) {
+                return $exception;
+            }
+
+            $exception = $exception->getPrevious();
+        } while ($exception !== null);
+
+        return null;
     }
 }

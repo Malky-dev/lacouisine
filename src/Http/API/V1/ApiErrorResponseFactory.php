@@ -17,13 +17,20 @@ final class ApiErrorResponseFactory
         string $code,
         string $message,
         array $headers = [],
+        array $details = [],
     ): JsonResponse {
+        $error = [
+            'code' => $code,
+            'message' => $message,
+        ];
+
+        if ($details !== []) {
+            $error = [...$error, ...$details];
+        }
+
         return new JsonResponse(
             data: [
-                'error' => [
-                    'code' => $code,
-                    'message' => $message,
-                ],
+                'error' => $error,
             ],
             status: $statusCode,
             headers: $headers,
