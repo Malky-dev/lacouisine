@@ -3,6 +3,7 @@ security:
         ROLE_CREATOR: ROLE_USER
         ROLE_MANAGER: ROLE_CREATOR
         ROLE_ADMIN: ROLE_MANAGER
+        ROLE_SUPER_ADMIN: ROLE_ADMIN
 
     # https://symfony.com/doc/current/security.html#registering-the-user-hashing-passwords
     password_hashers:
