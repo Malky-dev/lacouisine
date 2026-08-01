@@ -13,7 +13,7 @@ final readonly class RecipeDetails
         public string $content,
         public ?int $duration,
         public string $visibility,
-        public ?string $thumbnail,
+        public ?string $thumbnailUrl,
         public ?CategorySummary $category,
         public ?string $createdAt,
         public ?string $updatedAt,

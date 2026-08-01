@@ -4,22 +4,60 @@ declare(strict_types=1);
 
 namespace App\Controller\API;
 
+use App\DTO\API\V1\Recipe\CreateRecipeInput;
+use App\DTO\API\V1\Recipe\UpdateRecipeInput;
 use App\Entity\Recipe;
+use App\Entity\User;
 use App\Mapper\API\V1\PaginationMapper;
 use App\Mapper\API\V1\RecipeMapper;
 use App\Repository\RecipeRepository;
 use App\Security\Voter\RecipeVoter;
+use App\Service\RecipeManagementService;
+use App\Service\RecipeThumbnailService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
+use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Routing\Requirement\Requirement;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Component\Serializer\SerializerInterface;
+use Symfony\Component\Validator\Constraints as Assert;
+use Symfony\Component\Validator\Exception\ValidationFailedException;
+use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 final class RecipesController extends AbstractController
 {
+    #[Route(
+        '/api/v1/recipes',
+        name: 'api_v1_recipes_create',
+        methods: ['POST'],
+        defaults: ['_format' => 'json'],
+    )]
+    #[IsGranted('ROLE_CREATOR')]
+    public function create(
+        #[MapRequestPayload] CreateRecipeInput $input,
+        RecipeManagementService $service,
+        RecipeMapper $mapper,
+    ): JsonResponse {
+        $user = $this->getUser();
+        if (!$user instanceof User) {
+            throw $this->createAccessDeniedException();
+        }
+
+        $recipe = $service->create($input, $user);
+
+        return $this->json(
+            ['data' => $mapper->toDetails($recipe)],
+            Response::HTTP_CREATED,
+            ['Location' => $this->generateUrl('api_v1_recipes_show', [
+                'id' => $recipe->getId(),
+            ])],
+        );
+    }
+
     #[Route(
         '/api/v1/recipes',
         name: 'api_v1_recipes_index',
@@ -84,6 +122,94 @@ final class RecipesController extends AbstractController
         return $this->json([
             'data' => $mapper->toDetails($recipe),
         ]);
+    }
+
+    #[Route(
+        '/api/v1/recipes/{id}',
+        name: 'api_v1_recipes_update',
+        methods: ['PATCH'],
+        requirements: ['id' => Requirement::DIGITS],
+        defaults: ['_format' => 'json'],
+    )]
+    #[IsGranted(RecipeVoter::EDIT, subject: 'recipe')]
+    public function update(
+        Recipe $recipe,
+        #[MapRequestPayload] UpdateRecipeInput $input,
+        RecipeManagementService $service,
+        RecipeMapper $mapper,
+    ): JsonResponse {
+        $service->update($recipe, $input);
+
+        return $this->json(['data' => $mapper->toDetails($recipe)]);
+    }
+
+    #[Route(
+        '/api/v1/recipes/{id}',
+        name: 'api_v1_recipes_delete',
+        methods: ['DELETE'],
+        requirements: ['id' => Requirement::DIGITS],
+        defaults: ['_format' => 'json'],
+    )]
+    #[IsGranted(RecipeVoter::DELETE, subject: 'recipe')]
+    public function delete(
+        Recipe $recipe,
+        RecipeManagementService $service,
+    ): Response {
+        $service->delete($recipe);
+
+        return new Response(status: Response::HTTP_NO_CONTENT);
+    }
+
+    #[Route(
+        '/api/v1/recipes/{id}/thumbnail',
+        name: 'api_v1_recipes_thumbnail_upload',
+        methods: ['POST'],
+        requirements: ['id' => Requirement::DIGITS],
+        defaults: ['_format' => 'json'],
+    )]
+    #[IsGranted(RecipeVoter::EDIT, subject: 'recipe')]
+    public function uploadThumbnail(
+        Recipe $recipe,
+        Request $request,
+        ValidatorInterface $validator,
+        RecipeThumbnailService $service,
+        RecipeMapper $mapper,
+    ): JsonResponse {
+        $file = $request->files->get('thumbnail');
+        if ($file === null) {
+            throw new BadRequestHttpException('The thumbnail file is required.');
+        }
+
+        $violations = $validator->validate($file, [
+            new Assert\Image(
+                maxSize: '5M',
+                mimeTypes: ['image/jpeg', 'image/png', 'image/webp'],
+            ),
+        ]);
+        if ($violations->count() > 0) {
+            throw new ValidationFailedException($file, $violations);
+        }
+
+        $service->upload($recipe, $file);
+
+        return $this->json(['data' => $mapper->toDetails($recipe)]);
+    }
+
+    #[Route(
+        '/api/v1/recipes/{id}/thumbnail',
+        name: 'api_v1_recipes_thumbnail_delete',
+        methods: ['DELETE'],
+        requirements: ['id' => Requirement::DIGITS],
+        defaults: ['_format' => 'json'],
+    )]
+    #[IsGranted(RecipeVoter::EDIT, subject: 'recipe')]
+    public function deleteThumbnail(
+        Recipe $recipe,
+        RecipeThumbnailService $service,
+    ): Response {
+        $service->delete($recipe);
+
+        return new Response(status: Response::HTTP_NO_CONTENT);
     }
 
     #[Route(

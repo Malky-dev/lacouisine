@@ -9,9 +9,14 @@ use App\DTO\API\V1\Recipe\RecipeDetails;
 use App\DTO\API\V1\Recipe\RecipeListItem;
 use App\Entity\Category;
 use App\Entity\Recipe;
+use Vich\UploaderBundle\Storage\StorageInterface;
 
 final class RecipeMapper
 {
+    public function __construct(private readonly StorageInterface $storage)
+    {
+    }
+
     public function toListItem(Recipe $recipe): RecipeListItem
     {
         return new RecipeListItem(
@@ -32,7 +37,7 @@ final class RecipeMapper
             content: $recipe->getContent(),
             duration: $recipe->getDuration(),
             visibility: $recipe->getVisibility()->value,
-            thumbnail: $recipe->getThumbnail(),
+            thumbnailUrl: $this->storage->resolveUri($recipe, 'thumbnailFile'),
             category: $this->toCategorySummary($recipe->getCategory()),
             createdAt: $recipe->getCreatedAt()?->format(DATE_ATOM),
             updatedAt: $recipe->getUpdatedAt()?->format(DATE_ATOM),

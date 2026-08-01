@@ -181,6 +181,10 @@ class Recipe
     {
         $this->thumbnailFile = $thumbnailFile;
 
+        if ($thumbnailFile !== null) {
+            $this->updatedAt = new \DateTimeImmutable();
+        }
+
         return $this;
     }
 
