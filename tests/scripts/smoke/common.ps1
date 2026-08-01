@@ -12,6 +12,7 @@ function Invoke-ApiRequest {
 }
 function Invoke-ApiMultipartRequest {
     param([string]$Path,[string]$FilePath,[hashtable]$Headers=@{})
+    Add-Type -AssemblyName System.Net.Http
     $client=New-Object System.Net.Http.HttpClient
     $form=New-Object System.Net.Http.MultipartFormDataContent
     try {
