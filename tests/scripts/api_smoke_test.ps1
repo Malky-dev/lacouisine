@@ -9,6 +9,7 @@ $smokePath = Join-Path $PSScriptRoot "smoke"
 . (Join-Path $smokePath "public_api.ps1")
 . (Join-Path $smokePath "authentication.ps1")
 . (Join-Path $smokePath "category_management.ps1")
+. (Join-Path $smokePath "recipe_management.ps1")
 
 Initialize-SmokeTests $BaseUrl
 Write-Host "`nLa Couisine API smoke tests" -ForegroundColor Cyan
@@ -16,6 +17,7 @@ Write-Host "Target: $script:BaseUrl`n" -ForegroundColor DarkGray
 Invoke-PublicApiSmokeTests
 Invoke-AuthenticationSmokeTests $Username $Password
 Invoke-CategoryManagementSmokeTests $Username $Password
+Invoke-RecipeManagementSmokeTests $Username $Password
 Complete-SmokeTests
 exit 0
 

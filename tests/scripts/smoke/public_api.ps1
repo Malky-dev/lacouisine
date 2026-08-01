@@ -1,4 +1,9 @@
 function Invoke-PublicApiSmokeTests {
+    $anonymousRecipe = Invoke-ApiRequest "POST" "/api/v1/recipes" -Body @{ title = "Unauthorized recipe"; content = "Unauthorized content"; categoryId = 1 }
+    if (Assert-StatusCode $anonymousRecipe 401 "Anonymous recipe creation is rejected") {
+        Assert-ApiError $anonymousRecipe "UNAUTHORIZED" "Recipe management requires authentication"
+    }
+
     $anonymousCreate = Invoke-ApiRequest "POST" "/api/v1/categories" -Body @{ name = "Unauthorized smoke category" }
     if (Assert-StatusCode $anonymousCreate 401 "Anonymous category creation is rejected") {
         Assert-ApiError $anonymousCreate "UNAUTHORIZED" "Category management requires authentication"

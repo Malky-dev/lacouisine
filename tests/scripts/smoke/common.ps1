@@ -10,6 +10,15 @@ function Invoke-ApiRequest {
     $p=@{Method=$Method;Uri="$script:BaseUrl$Path";Headers=$Headers;UseBasicParsing=$true;TimeoutSec=10;ErrorAction="Stop"}; if($null-ne$Body){$p.ContentType="application/json";$p.Body=$Body|ConvertTo-Json -Compress}
     try{$r=Invoke-WebRequest @p;[PSCustomObject]@{StatusCode=[int]$r.StatusCode;Content=$r.Content;Error=$null}}catch{$r=$_.Exception.Response;if($null-eq$r){return [PSCustomObject]@{StatusCode=0;Content="";Error=$_.Exception.Message}};$c="";try{$s=$r.GetResponseStream();if($s){$rd=New-Object System.IO.StreamReader($s);try{$c=$rd.ReadToEnd()}finally{$rd.Dispose()}}}catch{};[PSCustomObject]@{StatusCode=[int]$r.StatusCode;Content=$c;Error=$null}}
 }
+function Invoke-ApiMultipartRequest {
+    param([string]$Path,[string]$FilePath,[hashtable]$Headers=@{})
+    $client=New-Object System.Net.Http.HttpClient
+    $form=New-Object System.Net.Http.MultipartFormDataContent
+    try {
+        foreach($entry in $Headers.GetEnumerator()){$client.DefaultRequestHeaders.TryAddWithoutValidation($entry.Key,$entry.Value)|Out-Null}
+        $bytes=[System.IO.File]::ReadAllBytes($FilePath);$file=New-Object System.Net.Http.ByteArrayContent -ArgumentList (,$bytes);$file.Headers.ContentType=[System.Net.Http.Headers.MediaTypeHeaderValue]::Parse("image/png");$form.Add($file,"thumbnail",[System.IO.Path]::GetFileName($FilePath));$response=$client.PostAsync("$script:BaseUrl$Path",$form).GetAwaiter().GetResult();$content=$response.Content.ReadAsStringAsync().GetAwaiter().GetResult();[PSCustomObject]@{StatusCode=[int]$response.StatusCode;Content=$content;Error=$null}
+    } finally {$form.Dispose();$client.Dispose()}
+}
 function Assert-StatusCode { param([object]$Response,[int]$ExpectedStatus,[string]$TestName) if($Response.StatusCode-eq$ExpectedStatus){Write-TestSuccess $TestName;return $true};Write-TestFailure $TestName "Expected HTTP $ExpectedStatus, received HTTP $($Response.StatusCode). $($Response.Error)";return $false }
 function Convert-JsonResponse { param([object]$Response,[string]$TestName) try{$Response.Content|ConvertFrom-Json}catch{Write-TestFailure $TestName "The response does not contain valid JSON.";$null} }
 function Assert-ApiError { param([object]$Response,[string]$ExpectedCode,[string]$TestName) $d=Convert-JsonResponse $Response $TestName;if($d.error.code-eq$ExpectedCode-and$d.error.message){Write-TestSuccess $TestName}else{Write-TestFailure $TestName "Expected error.code to equal $ExpectedCode."} }
