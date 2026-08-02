@@ -42,6 +42,47 @@ class RecipeRepository extends ServiceEntityRepository
         return $this->paginator->paginate($query, max(1, $page), 10);
     }
 
+    /** @return PaginationInterface<int, Recipe> */
+    public function paginateByCreator(
+        User $creator,
+        int $page,
+        ?RecipeVisibility $visibility = null,
+        ?string $categorySlug = null,
+        ?string $search = null,
+        int $perPage = 10,
+    ): PaginationInterface {
+        $query = $this->createQueryBuilder('recipe')
+            ->leftJoin('recipe.category', 'category')
+            ->addSelect('category')
+            ->andWhere('recipe.createdBy = :creator')
+            ->setParameter('creator', $creator)
+            ->orderBy('recipe.updatedAt', 'DESC');
+
+        if ($visibility !== null) {
+            $query
+                ->andWhere('recipe.visibility = :visibility')
+                ->setParameter('visibility', $visibility->value);
+        }
+
+        if ($categorySlug !== null) {
+            $query
+                ->andWhere('category.slug = :categorySlug')
+                ->setParameter('categorySlug', $categorySlug);
+        }
+
+        if ($search !== null) {
+            $query
+                ->andWhere('LOWER(recipe.title) LIKE :search')
+                ->setParameter('search', '%'.mb_strtolower($search).'%');
+        }
+
+        return $this->paginator->paginate(
+            $query,
+            max(1, $page),
+            max(1, $perPage),
+        );
+    }
+
     public function privatizeAndDetachByCreator(User $user): int
     {
         return $this->createQueryBuilder('recipe')

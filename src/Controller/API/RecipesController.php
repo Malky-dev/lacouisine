@@ -8,6 +8,7 @@ use App\DTO\API\V1\Recipe\CreateRecipeInput;
 use App\DTO\API\V1\Recipe\UpdateRecipeInput;
 use App\Entity\Recipe;
 use App\Entity\User;
+use App\Enum\RecipeVisibility;
 use App\Mapper\API\V1\PaginationMapper;
 use App\Mapper\API\V1\RecipeMapper;
 use App\Repository\RecipeRepository;
@@ -30,6 +31,55 @@ use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 final class RecipesController extends AbstractController
 {
+    #[Route(
+        '/api/v1/me/recipes',
+        name: 'api_v1_me_recipes_index',
+        methods: ['GET'],
+        defaults: ['_format' => 'json'],
+    )]
+    #[IsGranted('ROLE_CREATOR')]
+    public function mine(
+        Request $request,
+        RecipeRepository $repository,
+        RecipeMapper $mapper,
+        PaginationMapper $paginationMapper,
+    ): JsonResponse {
+        $user = $this->getUser();
+        if (!$user instanceof User) {
+            throw $this->createAccessDeniedException();
+        }
+
+        $visibilityValue = trim($request->query->getString('visibility'));
+        $visibility = $visibilityValue === ''
+            ? null
+            : RecipeVisibility::tryFrom($visibilityValue);
+        if ($visibilityValue !== '' && $visibility === null) {
+            throw new BadRequestHttpException('The visibility filter is invalid.');
+        }
+
+        $category = trim($request->query->getString('category')) ?: null;
+        $search = trim($request->query->getString('q')) ?: null;
+        if ($search !== null && mb_strlen($search) > 100) {
+            throw new BadRequestHttpException('The search filter is too long.');
+        }
+
+        $recipes = $repository->paginateByCreator(
+            creator: $user,
+            page: $request->query->getInt('page', 1),
+            visibility: $visibility,
+            categorySlug: $category,
+            search: $search,
+        );
+
+        return $this->json([
+            'data' => array_map(
+                static fn (Recipe $recipe) => $mapper->toListItem($recipe),
+                $recipes->getItems(),
+            ),
+            'meta' => $paginationMapper->toMeta($recipes),
+        ]);
+    }
+
     #[Route(
         '/api/v1/recipes',
         name: 'api_v1_recipes_create',
