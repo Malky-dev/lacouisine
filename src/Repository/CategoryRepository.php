@@ -53,6 +53,39 @@ class CategoryRepository extends ServiceEntityRepository
 
     }
 
+    /**
+     * @return PaginationInterface<int, array{0: Category, recipeCount: int|string}>
+     */
+    public function paginateCategoriesForApi(int $page, int $perPage = 10): PaginationInterface
+    {
+        $query = $this->createQueryBuilder('category')
+            ->select('category', 'COUNT(recipe.id) AS recipeCount')
+            ->leftJoin('category.recipes', 'recipe')
+            ->groupBy('category.id')
+            ->orderBy('category.name', 'ASC');
+
+        return $this->paginator->paginate(
+            $query,
+            max(1, $page),
+            max(1, $perPage),
+        );
+    }
+
+    /**
+     * @return array{0: Category, recipeCount: int|string}|null
+     */
+    public function findOneWithRecipeCountBySlug(string $slug): ?array
+    {
+        return $this->createQueryBuilder('category')
+            ->select('category', 'COUNT(recipe.id) AS recipeCount')
+            ->leftJoin('category.recipes', 'recipe')
+            ->andWhere('category.slug = :slug')
+            ->setParameter('slug', $slug)
+            ->groupBy('category.id')
+            ->getQuery()
+            ->getOneOrNullResult();
+    }
+
 
 
     //    /**
