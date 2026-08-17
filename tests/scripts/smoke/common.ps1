@@ -8,7 +8,34 @@ function Write-TestFailure { param([string]$Message,[string]$Details="") $script
 function Invoke-ApiRequest {
     param([string]$Method,[string]$Path,[hashtable]$Headers=@{},[AllowNull()][object]$Body=$null)
     $p=@{Method=$Method;Uri="$script:BaseUrl$Path";Headers=$Headers;UseBasicParsing=$true;TimeoutSec=10;ErrorAction="Stop"}; if($null-ne$Body){$p.ContentType="application/json";$p.Body=$Body|ConvertTo-Json -Compress}
-    try{$r=Invoke-WebRequest @p;[PSCustomObject]@{StatusCode=[int]$r.StatusCode;Content=$r.Content;Error=$null}}catch{$r=$_.Exception.Response;if($null-eq$r){return [PSCustomObject]@{StatusCode=0;Content="";Error=$_.Exception.Message}};$c="";try{$s=$r.GetResponseStream();if($s){$rd=New-Object System.IO.StreamReader($s);try{$c=$rd.ReadToEnd()}finally{$rd.Dispose()}}}catch{};[PSCustomObject]@{StatusCode=[int]$r.StatusCode;Content=$c;Error=$null}}
+    try {
+        $r=Invoke-WebRequest @p
+        [PSCustomObject]@{StatusCode=[int]$r.StatusCode;Content=$r.Content;Error=$null}
+    } catch {
+        $errorRecord=$_
+        $r=$errorRecord.Exception.Response
+        if($null-eq$r){return [PSCustomObject]@{StatusCode=0;Content="";Error=$errorRecord.Exception.Message}}
+
+        $c=""
+        if($null-ne$errorRecord.ErrorDetails-and-not[string]::IsNullOrWhiteSpace($errorRecord.ErrorDetails.Message)){
+            $c=$errorRecord.ErrorDetails.Message
+        } else {
+            try {
+                $contentProperty=$r.PSObject.Properties['Content']
+                if($null-ne$contentProperty-and$null-ne$contentProperty.Value-and$null-ne$contentProperty.Value.PSObject.Methods['ReadAsStringAsync']){
+                    $c=$contentProperty.Value.ReadAsStringAsync().GetAwaiter().GetResult()
+                } elseif($null-ne$r.PSObject.Methods['GetResponseStream']) {
+                    $s=$r.GetResponseStream()
+                    if($s){
+                        $rd=New-Object System.IO.StreamReader($s)
+                        try{$c=$rd.ReadToEnd()}finally{$rd.Dispose()}
+                    }
+                }
+            } catch {}
+        }
+
+        [PSCustomObject]@{StatusCode=[int]$r.StatusCode;Content=$c;Error=$null}
+    }
 }
 function Invoke-ApiMultipartRequest {
     param([string]$Path,[string]$FilePath,[hashtable]$Headers=@{})
